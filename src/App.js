@@ -1,8 +1,7 @@
 import React, { Component } from 'react';
 import {connect} from 'react-redux';
-import {updateRoomList} from './ducks/reducer';
+import {updateMobileDevice,updateHost,updateRoomList, updateUserList} from './ducks/reducer';
 import {isMobile} from 'react-device-detect';
-import {updateMobileDevice} from './ducks/reducer';
 import socketIOClient from 'socket.io-client';
 import UBox from './UserBox/UBox';
 import HBox from './HostBox/HBox';
@@ -14,26 +13,43 @@ class App extends Component {
   constructor(props){
     super(props)
     this.state = {}
-
+    // RECEIVE WELCOME
     socket.on('welcome', (welcome) => {
       console.log('App.js, receiving welcome', welcome);
       this.props.updateHost(welcome.host)
       this.props.updateRoomList(welcome.roomList)
+      this.props.updateUserList(welcome.userList)
     })
-
+    // RECEIVE HOST REQUEST RESPONSE
+    socket.on('host request response', (response) => {
+      console.log('host request response',response)
+      socket.emit(response.entry, {host:this.props.host, room:this.props.room})
+      console.log(`${this.props.host} started a game in room ${this.props.room}`);
+    })
   }
   joinUser (){
     socket.emit('join user', {
       // user: this.state.user.toLowerCase(),
       // room: this.state.room.toLowerCase()
-  })
+  })}
+  joinHostRequest = () => {
+    //  SEND HOST REQUEST
+    socket.emit('host request', {host:this.host
+    })
+    console.log('host request')
   }
   componentDidMount = () => {
     this.props.updateMobileDevice(isMobile)
   }
-  // componentDidUpdate = (prevProps, prevState) => {
-  //   return prevProps === prevState ? true : false;
-  // }
+  componentDidUpdate = (prevProps) => {
+    if (this.props !== prevProps) {
+      this.setState({
+        room: this.props.room,
+        user: this.props.user,
+        mobileDevice: this.props.mobileDevice,
+      })
+    }
+  }
   stateBtn = () => {
     console.log(this.props);
   }
@@ -47,7 +63,7 @@ class App extends Component {
       } else if (this.props.mobileDevice === true){
         return <UBox /> //mobile devices given User component
       } else if (this.props.mobileDevice === false){
-        return <HBox /> //desktop devices given Host component
+        return <HBox joinHostRequest={this.joinHostRequest}/> //desktop devices given Host component
       }
     };
     return (
@@ -62,12 +78,14 @@ class App extends Component {
   }
 }
 function mapStateToProps( state ){
-  const {mobileDevice,room,roomList,user} = state;
+  const {mobileDevice,room,roomList,user,userList,host} = state;
   return {
+      host,
       mobileDevice,
       room,
       roomList,
       user,
+      userList,
   };
 }
-export default connect (mapStateToProps, {updateMobileDevice})(App); 
+export default connect (mapStateToProps, {updateMobileDevice, updateRoomList, updateUserList, updateHost})(App); 

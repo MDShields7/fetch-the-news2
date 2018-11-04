@@ -7,11 +7,32 @@ const io = require('socket.io')(server)
 var host = '';
 var room = 'hi';
 var userList = [];
-var roomList = [];
-let counter = 0;
+var roomList = ['hi'];
+var counter = 0;
+var hostList = ['jo'];
+
 
 io.sockets.on('connection', (socket) => {
-  socket.emit('welcome', {host:host, roomList:roomList})
+  // SEND WELCOME
+  socket.emit('welcome', {id:counter, roomList:roomList, userList:userList})
+  socket.id = counter;
+  // RECEIVE HOST REQUEST
+  socket.on('host request', (hostRequest) => {
+    console.log('received host request')
+    for ( let i = 0; i < hostList.length; i++){
+      if (hostList[i] === hostRequest.host){
+        console.log('accepting host request')
+        // SENDING HOST REQUEST RESPONSE
+        socket.emit('host request response', {entry:'abcd'})
+      }
+    }
+  })
+  // RECEIVE HOST JOIN
+  socket.on('abcd', response => {
+    roomList.push(response.room);
+    hostList.push(response.host);
+    
+  })
   console.log(`user connected, ${socket['id']}`)
   socket.on('join user', (join) => {
     //Adding items to socket object for easy ID on disconnect
@@ -29,7 +50,6 @@ io.sockets.on('connection', (socket) => {
         roundScore: 0,
         currentScore: 0,
       };
-      counter++;
       if(userList[0]){newUser.host=true}else{newUser.host=false}
       userList.push(newUser); // user added to userList
     socket.join(join.room);
@@ -37,6 +57,7 @@ io.sockets.on('connection', (socket) => {
     }
   })
   socket.on('disconnect', () => {
+
     for (i = userList.length-1; i>=0; i--){
       if (userList[i]['id'] === socket.join.id){
       userList.splice(i, 1)
@@ -45,6 +66,7 @@ io.sockets.on('connection', (socket) => {
     console.log('user', socket.join.user, ', id', socket.join.id, 'disconnected', '.', userList.length, 'users still in room')
     if(userList[0] ){room = ''}
   })
+  counter++;
 })
 
 
